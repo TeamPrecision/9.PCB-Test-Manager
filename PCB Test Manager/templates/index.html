@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PCB Test Manager</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<!-- ── SCREEN: HOME ───────────────────────────────────────────────────────── -->
+<div id="screen-home">
+  <div class="home-header">
+    <div class="home-logo">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#3B82F6"/><path d="M8 12h16M8 16h10M8 20h13" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="24" cy="20" r="3" fill="white"/></svg>
+      <span>PCB Test Manager</span>
+    </div>
+    <button class="btn btn-primary" onclick="App.openCreateProject()">+ New Project</button>
+  </div>
+  <div class="home-body">
+    <div id="project-list" class="project-grid"></div>
+    <div id="home-empty" class="empty-state" style="display:none">
+      <svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="8" y="8" width="48" height="48" rx="8" stroke="#CBD5E1" stroke-width="2"/><path d="M20 32h24M20 22h24M20 42h16" stroke="#CBD5E1" stroke-width="2" stroke-linecap="round"/></svg>
+      <h3>No projects yet</h3>
+      <p>Create your first project to get started</p>
+      <button class="btn btn-primary" onclick="App.openCreateProject()">+ New Project</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SCREEN: EDITOR ─────────────────────────────────────────────────────── -->
+<div id="screen-editor" class="hidden">
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <button class="sidebar-back" onclick="App.goHome()" title="Back to projects">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M11 4L6 9l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <div class="sidebar-project">
+        <div id="sb-project-name" class="sb-name" contenteditable="true" spellcheck="false"></div>
+        <div id="sb-project-desc" class="sb-desc" contenteditable="true" spellcheck="false" data-placeholder="Add description…"></div>
+      </div>
+    </div>
+    <nav class="sidebar-nav" id="sidebar-nav">
+      <button class="nav-item active" data-tab="steps" onclick="App.switchTab('steps')">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="2" rx="1" fill="currentColor"/><rect x="2" y="7" width="9" height="2" rx="1" fill="currentColor"/><rect x="2" y="11" width="11" height="2" rx="1" fill="currentColor"/></svg>
+        Test Steps
+        <span class="nav-badge" id="nb-steps">0</span>
+      </button>
+      <button class="nav-item" data-tab="testpoints" onclick="App.switchTab('testpoints')">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="2" fill="currentColor"/></svg>
+        Test Points
+        <span class="nav-badge" id="nb-tp">0</span>
+      </button>
+      <button class="nav-item" data-tab="issues" onclick="App.switchTab('issues')">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3.5M8 11h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Issues
+        <span class="nav-badge" id="nb-issues">0</span>
+      </button>
+      <div id="custom-tabs-nav"></div>
+      <button class="nav-item nav-add" onclick="App.addCustomTab()">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Add Tab
+      </button>
+    </nav>
+    <div class="sidebar-bottom">
+      <button class="sb-action" onclick="App.openRevisions()" title="Revision history">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8a6 6 0 1 0 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M2 4v4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        History
+      </button>
+      <button class="sb-action" onclick="App.exportHTML()" title="Export report">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M9 2H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6L9 2z" stroke="currentColor" stroke-width="1.5"/><path d="M9 2v4h4M6 9l2 2 2-2M8 7v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Export
+      </button>
+      <div id="save-status" class="save-status">Saved</div>
+    </div>
+  </aside>
+
+  <main class="editor-main">
+    <!-- Steps Tab -->
+    <div id="tab-steps" class="tab-content">
+      <div class="tab-toolbar">
+        <h2>Test Steps</h2>
+        <div class="toolbar-right">
+          <div class="search-box">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4" stroke="#94A3B8" stroke-width="1.5"/><path d="M10 10l2 2" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <input type="text" id="steps-search" placeholder="Search steps…" oninput="App.filterSteps(this.value)">
+          </div>
+          <button class="btn btn-primary" onclick="App.openStepModal()">+ Add Step</button>
+        </div>
+      </div>
+      <div id="steps-list" class="steps-list"></div>
+      <div id="steps-empty" class="empty-state" style="display:none">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><rect x="6" y="6" width="36" height="36" rx="6" stroke="#CBD5E1" stroke-width="2"/><path d="M14 24h20M14 16h20M14 32h14" stroke="#CBD5E1" stroke-width="2" stroke-linecap="round"/></svg>
+        <p>No steps yet — click <strong>+ Add Step</strong> to begin</p>
+      </div>
+    </div>
+
+    <!-- Test Points Tab -->
+    <div id="tab-testpoints" class="tab-content hidden">
+      <div class="tab-toolbar">
+        <h2>Test Points</h2>
+        <div class="toolbar-right">
+          <button class="btn btn-secondary" onclick="App.openUploadImageModal()">+ Upload Image</button>
+          <button class="btn btn-primary" onclick="App.openAddTestPoint()">+ Add Test Point</button>
+        </div>
+      </div>
+      <div class="tp-layout">
+        <div class="tp-sidebar">
+          <div class="tp-sidebar-head">Test Points <span id="tp-count" class="badge">0</span></div>
+          <div id="tp-list" class="tp-list"></div>
+        </div>
+        <div class="tp-canvas-area">
+          <div class="tp-image-selector" id="tp-image-selector"></div>
+          <div class="tp-canvas-wrap" id="tp-canvas-wrap">
+            <canvas id="tp-canvas"></canvas>
+            <div id="tp-canvas-hint" class="tp-hint">Upload a reference image and click to place test points</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Issues Tab -->
+    <div id="tab-issues" class="tab-content hidden">
+      <div class="tab-toolbar">
+        <h2>Issues</h2>
+        <div class="toolbar-right">
+          <select id="issue-filter" class="select-sm" onchange="App.renderIssues()">
+            <option value="all">All Status</option>
+            <option value="open">Open</option>
+            <option value="in_progress">In Progress</option>
+            <option value="resolved">Resolved</option>
+            <option value="closed">Closed</option>
+          </select>
+          <button class="btn btn-primary" onclick="App.openIssueModal()">+ New Issue</button>
+        </div>
+      </div>
+      <div id="issues-list" class="issues-list"></div>
+      <div id="issues-empty" class="empty-state" style="display:none">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="18" stroke="#CBD5E1" stroke-width="2"/><path d="M24 14v12M24 30h.01" stroke="#CBD5E1" stroke-width="2" stroke-linecap="round"/></svg>
+        <p>No issues — great! Click <strong>+ New Issue</strong> to log one</p>
+      </div>
+    </div>
+
+    <!-- Custom Tabs -->
+    <div id="custom-tabs-content"></div>
+  </main>
+</div>
+
+<!-- ══════════════ MODALS ══════════════ -->
+
+<!-- Create Project -->
+<div id="modal-create-project" class="modal-overlay hidden">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3>New Project</h3>
+      <button class="modal-close" onclick="App.closeModal('modal-create-project')">✕</button>
+    </div>
+    <div class="modal-body">
+      <label class="field-label">Project Name *</label>
+      <input id="cp-name" class="input" type="text" placeholder="e.g. E-00806A" autofocus>
+      <label class="field-label mt">Description</label>
+      <textarea id="cp-desc" class="input textarea-sm" placeholder="Optional description…"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="App.closeModal('modal-create-project')">Cancel</button>
+      <button class="btn btn-primary" onclick="App.createProject()">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Step Editor -->
+<div id="modal-step" class="modal-overlay hidden">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3 id="step-modal-title">Add Step</h3>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="s-type" class="select-sm badge-select">
+          <option value="customer_spec">Customer Spec</option>
+          <option value="user_added">User Added</option>
+        </select>
+        <button class="modal-close" onclick="App.closeModal('modal-step')">✕</button>
+      </div>
+    </div>
+    <div class="modal-body modal-body-split">
+      <div class="step-form-col">
+        <label class="field-label">Step Name *</label>
+        <input id="s-name" class="input" type="text" placeholder="e.g. Measure 12V output">
+
+        <label class="field-label mt">Detail / Instructions</label>
+        <textarea id="s-detail" class="input textarea-md" placeholder="What should the operator do?"></textarea>
+
+        <div class="row-2">
+          <div>
+            <label class="field-label">Measurement Point</label>
+            <div class="combo-wrap">
+              <input id="s-mp" class="input" list="dl-mp" placeholder="e.g. J1-2">
+              <datalist id="dl-mp"></datalist>
+            </div>
+          </div>
+          <div>
+            <label class="field-label">Unit</label>
+            <div class="combo-wrap">
+              <input id="s-unit" class="input" list="dl-unit" placeholder="e.g. V">
+              <datalist id="dl-unit"></datalist>
+            </div>
+          </div>
+        </div>
+
+        <label class="field-label mt">Expected Value</label>
+        <div class="value-type-tabs">
+          <button class="vt-btn active" data-vt="range" onclick="App.setValueType('range',this)">Fixed Range</button>
+          <button class="vt-btn" data-vt="center" onclick="App.setValueType('center',this)">Center ± %</button>
+          <button class="vt-btn" data-vt="formula" onclick="App.setValueType('formula',this)">Formula</button>
+          <button class="vt-btn" data-vt="pass_fail" onclick="App.setValueType('pass_fail',this)">Pass/Fail Only</button>
+        </div>
+
+        <div id="vt-range" class="vt-panel">
+          <div class="row-2">
+            <div><label class="field-label">Min</label><input id="s-min" class="input" type="number" step="any" placeholder="0"></div>
+            <div><label class="field-label">Max</label><input id="s-max" class="input" type="number" step="any" placeholder="0"></div>
+          </div>
+        </div>
+        <div id="vt-center" class="vt-panel hidden">
+          <div class="row-3">
+            <div><label class="field-label">Center</label><input id="s-center" class="input" type="number" step="any" placeholder="12" oninput="App.calcCenterRange()"></div>
+            <div><label class="field-label">Tolerance %</label><input id="s-tol" class="input" type="number" step="any" placeholder="8" oninput="App.calcCenterRange()"></div>
+            <div><label class="field-label">→ Min / Max</label><div id="s-center-preview" class="field-preview">—</div></div>
+          </div>
+        </div>
+        <div id="vt-formula" class="vt-panel hidden">
+          <label class="field-label">Formula <span class="hint-text">(use step(n).result, e.g. step(1).result * 0.95)</span></label>
+          <input id="s-formula" class="input input-mono" type="text" placeholder="step(1).result * 1.1">
+          <label class="field-label mt">Tolerance ± %</label>
+          <input id="s-ftol" class="input" type="number" step="any" placeholder="5">
+        </div>
+        <div id="vt-pass_fail" class="vt-panel hidden">
+          <p class="hint-text">No numeric measurement — operator marks Pass or Fail manually.</p>
+        </div>
+
+        <label class="field-label mt">Notes</label>
+        <textarea id="s-notes" class="input textarea-sm" placeholder="Optional extra notes for operator…"></textarea>
+      </div>
+
+      <div class="step-diagram-col">
+        <label class="field-label">Wiring Diagram</label>
+        <div id="step-diagram-thumb" class="diagram-thumb" onclick="App.openDiagramEditor()">
+          <div id="diagram-thumb-img"></div>
+          <div id="diagram-thumb-hint" class="diagram-thumb-hint">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M4 24L12 16l5 5 5-8 6 7" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="#94A3B8" stroke-width="1.5"/></svg>
+            <span>Click to draw wiring diagram</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm mt" onclick="App.openDiagramEditor()" style="width:100%">
+          ✏ Open Diagram Editor
+        </button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="App.closeModal('modal-step')">Cancel</button>
+      <button class="btn btn-primary" onclick="App.saveStep()">Save Step</button>
+    </div>
+  </div>
+</div>
+
+<!-- Diagram Editor -->
+<div id="modal-diagram" class="modal-overlay hidden">
+  <div class="modal modal-diagram">
+    <div class="modal-header">
+      <h3 id="diagram-modal-title">Wiring Diagram</h3>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" onclick="App.clearDiagram()">Clear</button>
+        <button class="btn btn-secondary btn-sm" onclick="App.undoDiagram()">↩ Undo</button>
+        <button class="btn btn-primary btn-sm" onclick="App.saveDiagram()">Save Diagram</button>
+        <button class="modal-close" onclick="App.closeDiagramEditor()">✕</button>
+      </div>
+    </div>
+    <div class="diagram-editor-body">
+      <div class="diagram-tools">
+        <div class="tool-group">
+          <button class="tool-btn active" id="tool-select" onclick="App.setDiagramTool('select')" title="Select (V)">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 3l10 6-5 1-2 5L4 3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="tool-btn" id="tool-pencil" onclick="App.setDiagramTool('pencil')" title="Pencil (P)">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M12 3l3 3-9 9H3v-3L12 3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="tool-btn" id="tool-line" onclick="App.setDiagramTool('line')" title="Line (L)">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 15L15 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+          <button class="tool-btn" id="tool-arrow" onclick="App.setDiagramTool('arrow')" title="Arrow (A)">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 15L14 4M14 4h-5M14 4v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="tool-btn" id="tool-rect" onclick="App.setDiagramTool('rect')" title="Rectangle (R)">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="3" y="4" width="12" height="10" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
+          </button>
+          <button class="tool-btn" id="tool-text" onclick="App.setDiagramTool('text')" title="Text (T)">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 5h12M9 5v10M6 15h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="tool-group">
+          <label class="tool-label">Color</label>
+          <input type="color" id="tool-color" class="tool-color" value="#EF4444">
+        </div>
+        <div class="tool-group">
+          <label class="tool-label">Stroke</label>
+          <input type="range" id="tool-stroke" min="1" max="10" value="2" class="tool-range">
+        </div>
+        <div class="tool-group">
+          <button class="tool-btn" onclick="App.diagramZoom(1.2)" title="Zoom In">+</button>
+          <button class="tool-btn" onclick="App.diagramZoom(0.8)" title="Zoom Out">−</button>
+          <button class="tool-btn" onclick="App.diagramFit()" title="Fit">⊡</button>
+        </div>
+        <div class="tool-group">
+          <label class="tool-label">Import</label>
+          <button class="tool-btn" onclick="App.importDiagramImage()" title="Import image">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="4" width="14" height="10" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M6 9l2-2 2 2M8 7v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="diagram-canvas-wrap">
+        <canvas id="diagram-canvas"></canvas>
+      </div>
+      <div class="diagram-tp-panel">
+        <div class="tp-panel-head">Test Points</div>
+        <div id="diagram-tp-list" class="diagram-tp-list"></div>
+        <div class="tp-panel-head mt">Layers</div>
+        <div id="diagram-layers" class="diagram-layers"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Issue Editor -->
+<div id="modal-issue" class="modal-overlay hidden">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3 id="issue-modal-title">New Issue</h3>
+      <button class="modal-close" onclick="App.closeModal('modal-issue')">✕</button>
+    </div>
+    <div class="modal-body">
+      <label class="field-label">Title *</label>
+      <input id="i-title" class="input" type="text" placeholder="Brief description of the issue">
+      <div class="row-2 mt">
+        <div>
+          <label class="field-label">Status</label>
+          <select id="i-status" class="input">
+            <option value="open">Open</option>
+            <option value="in_progress">In Progress</option>
+            <option value="resolved">Resolved</option>
+            <option value="closed">Closed</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Related Steps</label>
+          <div id="i-steps-select" class="multi-select"></div>
+        </div>
+      </div>
+      <label class="field-label mt">Description</label>
+      <textarea id="i-desc" class="input textarea-lg" placeholder="Describe the problem, customer question, or proposed solution…"></textarea>
+      <label class="field-label mt">Attachments</label>
+      <div class="attach-drop" id="i-attach-drop" onclick="document.getElementById('i-attach-input').click()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 5v10M7 10l5-5 5 5" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 19h14" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <span>Click to upload files</span>
+        <input id="i-attach-input" type="file" multiple style="display:none" onchange="App.attachFiles(this)">
+      </div>
+      <div id="i-attachments-list" class="attachments-list"></div>
+      <label class="field-label mt">Comments / Discussion Thread</label>
+      <div id="i-thread" class="issue-thread"></div>
+      <div class="issue-reply">
+        <textarea id="i-comment" class="input textarea-sm" placeholder="Add a comment…"></textarea>
+        <button class="btn btn-secondary btn-sm" onclick="App.addComment()">Post</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="App.closeModal('modal-issue')">Cancel</button>
+      <button class="btn btn-primary" onclick="App.saveIssue()">Save Issue</button>
+    </div>
+  </div>
+</div>
+
+<!-- Revision History -->
+<div id="modal-revisions" class="modal-overlay hidden">
+  <div class="modal modal-md">
+    <div class="modal-header">
+      <h3>Revision History</h3>
+      <button class="modal-close" onclick="App.closeModal('modal-revisions')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="rev-save-row">
+        <input id="rev-label" class="input" type="text" placeholder="Label for this revision…">
+        <button class="btn btn-primary btn-sm" onclick="App.saveRevision()">Save Version</button>
+      </div>
+      <div id="rev-list" class="rev-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Upload Image -->
+<div id="modal-upload-image" class="modal-overlay hidden">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3>Upload Reference Image</h3>
+      <button class="modal-close" onclick="App.closeModal('modal-upload-image')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="attach-drop" id="img-drop" onclick="document.getElementById('img-input').click()">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="4" y="6" width="24" height="20" rx="3" stroke="#94A3B8" stroke-width="1.5"/><path d="M4 22l7-7 4 4 3-3 6 6" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="11" cy="12" r="2" stroke="#94A3B8" stroke-width="1.5"/></svg>
+        <span>Click to select image (PNG, JPG, SVG…)</span>
+        <input id="img-input" type="file" accept="image/*" style="display:none" onchange="App.uploadImage(this)">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Test Point Editor -->
+<div id="modal-tp" class="modal-overlay hidden">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3 id="tp-modal-title">Test Point</h3>
+      <button class="modal-close" onclick="App.closeModal('modal-tp')">✕</button>
+    </div>
+    <div class="modal-body">
+      <label class="field-label">Name *</label>
+      <input id="tp-name" class="input" type="text" placeholder="e.g. GND, VCC, J1-1">
+      <label class="field-label mt">Description</label>
+      <input id="tp-desc" class="input" type="text" placeholder="Optional">
+      <label class="field-label mt">Color</label>
+      <input id="tp-color" type="color" class="input" value="#EF4444" style="height:40px;padding:4px">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="App.closeModal('modal-tp')">Cancel</button>
+      <button class="btn btn-primary" onclick="App.saveTestPoint()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Dialog -->
+<div id="modal-confirm" class="modal-overlay hidden">
+  <div class="modal modal-xs">
+    <div class="modal-body" style="padding:24px">
+      <p id="confirm-msg" style="margin:0 0 20px;font-size:15px"></p>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button class="btn btn-ghost" onclick="App.confirmReject()">Cancel</button>
+        <button class="btn btn-danger" onclick="App.confirmAccept()">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<input id="diagram-img-input" type="file" accept="image/*" style="display:none" onchange="App.onDiagramImageSelected(this)">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

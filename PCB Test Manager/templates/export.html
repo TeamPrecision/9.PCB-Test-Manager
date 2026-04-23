@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ proj.name }} — Test Report</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:14px;color:#1E293B;background:#F8FAFC}
+.page{max-width:960px;margin:0 auto;padding:32px 24px}
+h1{font-size:24px;font-weight:800;margin-bottom:4px}
+.subtitle{color:#64748B;font-size:13px;margin-bottom:32px}
+.section{margin-bottom:40px}
+.section-title{font-size:16px;font-weight:700;margin-bottom:16px;padding-bottom:8px;
+  border-bottom:2px solid #E2E8F0;display:flex;align-items:center;gap:10px}
+.badge{display:inline-flex;align-items:center;justify-content:center;padding:2px 10px;
+  border-radius:10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.badge-spec{background:#DBEAFE;color:#1D4ED8}
+.badge-user{background:#F1F5F9;color:#475569}
+.badge-pf{background:#FEF9C3;color:#92400E;padding:3px 12px;font-size:13px;border-radius:6px;border:1px solid #FDE68A}
+.step-card{background:#fff;border:1.5px solid #E2E8F0;border-radius:10px;margin-bottom:12px;overflow:hidden}
+.step-head{display:flex;align-items:center;gap:12px;padding:14px 18px;background:#F8FAFC;border-bottom:1px solid #E2E8F0}
+.step-num{width:28px;height:28px;border-radius:50%;background:#E2E8F0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#64748B;flex-shrink:0}
+.step-name{font-weight:600;font-size:14px;flex:1}
+.step-body{padding:14px 18px;display:flex;gap:24px;flex-wrap:wrap}
+.step-col{flex:1;min-width:180px}
+.label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94A3B8;margin-bottom:4px}
+.value{font-size:13px;font-weight:500}
+.value-range{font-family:'Courier New',monospace;background:#F1F5F9;padding:2px 8px;border-radius:4px}
+.step-detail{font-size:12px;color:#64748B;margin-top:6px;padding-top:10px;border-top:1px solid #F1F5F9}
+.diagram-img{max-width:100%;border-radius:6px;border:1px solid #E2E8F0;margin-top:10px;cursor:zoom-in}
+.result-row{display:flex;align-items:center;justify-content:space-between;background:#F8FAFC;
+  padding:10px 18px;border-top:1px solid #E2E8F0}
+.result-input{border:1.5px solid #CBD5E1;border-radius:6px;padding:6px 10px;font-size:13px;
+  width:120px;text-align:center;font-family:'Courier New',monospace}
+.pf-auto{font-size:12px;color:#94A3B8;font-style:italic}
+/* Issues */
+.issue-card{background:#fff;border:1.5px solid #E2E8F0;border-radius:10px;margin-bottom:12px;padding:16px}
+.issue-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:8px}
+.issue-title{font-weight:600;font-size:14px;flex:1}
+.status-open{background:#FEE2E2;color:#991B1B}
+.status-in_progress{background:#FEF3C7;color:#92400E}
+.status-resolved{background:#D1FAE5;color:#065F46}
+.status-closed{background:#F1F5F9;color:#475569}
+.issue-desc{font-size:13px;color:#475569;margin-bottom:10px}
+.issue-refs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.ref-tag{background:#DBEAFE;color:#1E40AF;font-size:11px;font-weight:600;padding:2px 10px;border-radius:10px}
+.attach-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.attach-img{width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid #E2E8F0;cursor:zoom-in}
+.comment{background:#F8FAFC;border-radius:6px;padding:10px 12px;margin-top:8px}
+.comment-meta{font-size:11px;color:#94A3B8;margin-bottom:4px}
+/* Filters toolbar */
+.toolbar{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.filter-btn{padding:6px 16px;border:1.5px solid #E2E8F0;border-radius:20px;background:#fff;
+  cursor:pointer;font-size:12px;font-weight:500;color:#64748B;transition:all .15s}
+.filter-btn.active,.filter-btn:hover{border-color:#3B82F6;color:#3B82F6;background:#EFF6FF}
+.meta-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:32px}
+.meta-card{background:#fff;border:1px solid #E2E8F0;border-radius:8px;padding:14px}
+.meta-label{font-size:11px;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.meta-value{font-size:18px;font-weight:700}
+/* Modal zoom */
+.zoom-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:999;
+  align-items:center;justify-content:center;cursor:zoom-out}
+.zoom-overlay.active{display:flex}
+.zoom-overlay img{max-width:95vw;max-height:95vh;object-fit:contain}
+@media print{.toolbar,.no-print{display:none!important}.step-card{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="page">
+  <!-- Header -->
+  <h1>{{ proj.name }}</h1>
+  <div class="subtitle">
+    Test Report &nbsp;·&nbsp; Rev {{ proj.revision }}
+    &nbsp;·&nbsp; Generated {{ generated }}
+    {% if proj.description %} &nbsp;·&nbsp; {{ proj.description }}{% endif %}
+  </div>
+
+  <!-- Summary cards -->
+  <div class="meta-grid">
+    <div class="meta-card"><div class="meta-label">Steps</div><div class="meta-value">{{ proj.steps|length }}</div></div>
+    <div class="meta-card"><div class="meta-label">Test Points</div><div class="meta-value">{{ proj.test_points|length }}</div></div>
+    <div class="meta-card"><div class="meta-label">Issues</div><div class="meta-value">{{ proj.issues|length }}</div></div>
+    <div class="meta-card"><div class="meta-label">Revision</div><div class="meta-value">{{ proj.revision }}</div></div>
+  </div>
+
+  <!-- Filter toolbar -->
+  <div class="toolbar no-print" id="toolbar">
+    <strong style="font-size:13px">Filter:</strong>
+    <button class="filter-btn active" onclick="filter('all',this)">All Steps</button>
+    <button class="filter-btn" onclick="filter('customer_spec',this)">Customer Spec</button>
+    <button class="filter-btn" onclick="filter('user_added',this)">User Added</button>
+    <button class="filter-btn" onclick="filter('has_diagram',this)">Has Diagram</button>
+    <button class="filter-btn no-print" onclick="window.print()" style="margin-left:auto">🖨 Print / Save PDF</button>
+  </div>
+
+  <!-- Test Steps -->
+  {% if proj.steps %}
+  <div class="section">
+    <div class="section-title">📋 Test Steps</div>
+    {% for s in proj.steps %}
+    {% set range_str = '' %}
+    <div class="step-card" data-type="{{ s.type }}" data-has-diagram="{{ 'yes' if s.diagram_thumbnail else 'no' }}">
+      <div class="step-head">
+        <div class="step-num">{{ loop.index }}</div>
+        <div class="step-name">{{ s.name }}</div>
+        <span class="badge badge-{{ 'spec' if s.type == 'customer_spec' else 'user' }}">
+          {{ 'Customer Spec' if s.type == 'customer_spec' else 'User Added' }}
+        </span>
+      </div>
+      <div class="step-body">
+        {% if s.measurement_point %}
+        <div class="step-col">
+          <div class="label">Measurement Point</div>
+          <div class="value">{{ s.measurement_point }}</div>
+        </div>
+        {% endif %}
+        {% if s.unit %}
+        <div class="step-col">
+          <div class="label">Unit</div>
+          <div class="value">{{ s.unit }}</div>
+        </div>
+        {% endif %}
+        {% if s.value_type != 'pass_fail' %}
+        <div class="step-col">
+          <div class="label">Expected Range</div>
+          <div class="value">
+            {% if s.value_type == 'formula' %}
+            <span class="value-range">={{ s.formula }}</span>
+            {% elif s.min is defined and s.max is defined %}
+            <span class="value-range">{{ s.min }} ~ {{ s.max }} {{ s.unit or '' }}</span>
+            {% endif %}
+            {% if s.tolerance_percent %}
+            <span style="font-size:11px;color:#94A3B8"> (±{{ s.tolerance_percent }}%)</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+        {% if s.detail or s.notes %}
+        <div class="step-col" style="flex-basis:100%">
+          {% if s.detail %}<div class="step-detail"><strong>Instructions:</strong> {{ s.detail }}</div>{% endif %}
+          {% if s.notes  %}<div class="step-detail"><strong>Notes:</strong> {{ s.notes }}</div>{% endif %}
+        </div>
+        {% endif %}
+        {% if s.diagram_thumbnail %}
+        <div class="step-col" style="flex-basis:100%">
+          <div class="label">Wiring Diagram</div>
+          <img class="diagram-img" src="{{ s.diagram_thumbnail }}"
+               onclick="zoomImg(this.src)" alt="Wiring diagram for {{ s.name }}">
+        </div>
+        {% endif %}
+      </div>
+      <div class="result-row">
+        <div>
+          <span style="font-size:12px;color:#64748B;font-weight:600">MEASURED VALUE</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          {% if s.value_type == 'pass_fail' %}
+            <span class="badge-pf" contenteditable="true">PASS / FAIL</span>
+          {% else %}
+            <input class="result-input" type="text" placeholder="Enter value…"
+              oninput="checkPF(this, {{ s.min or 'null' }}, {{ s.max or 'null' }})">
+            <span class="pf-auto" id="pf-{{ loop.index }}">—</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Test Points -->
+  {% if proj.test_points %}
+  <div class="section">
+    <div class="section-title">⊙ Test Points</div>
+    <table style="width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;border:1.5px solid #E2E8F0">
+      <thead><tr style="background:#F8FAFC">
+        <th style="padding:10px 14px;text-align:left;font-size:12px;color:#64748B;font-weight:700;text-transform:uppercase">Color</th>
+        <th style="padding:10px 14px;text-align:left;font-size:12px;color:#64748B;font-weight:700;text-transform:uppercase">Name</th>
+        <th style="padding:10px 14px;text-align:left;font-size:12px;color:#64748B;font-weight:700;text-transform:uppercase">Description</th>
+      </tr></thead>
+      <tbody>
+      {% for tp in proj.test_points %}
+      <tr style="border-top:1px solid #E2E8F0">
+        <td style="padding:10px 14px"><div style="width:16px;height:16px;border-radius:50%;background:{{ tp.color }}"></div></td>
+        <td style="padding:10px 14px;font-weight:600">{{ tp.name }}</td>
+        <td style="padding:10px 14px;color:#64748B">{{ tp.description or '—' }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- Issues -->
+  {% if proj.issues %}
+  <div class="section">
+    <div class="section-title">⚠ Issues</div>
+    {% for i in proj.issues %}
+    <div class="issue-card">
+      <div class="issue-top">
+        <div class="issue-title">{{ i.title }}</div>
+        <span class="badge status-{{ i.status }}">{{ i.status.replace('_',' ') }}</span>
+      </div>
+      {% if i.step_refs %}
+      <div class="issue-refs">
+        {% for sid in i.step_refs %}
+          {% for s in proj.steps %}{% if s.id == sid %}<span class="ref-tag">{{ s.name }}</span>{% endif %}{% endfor %}
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if i.description %}<div class="issue-desc">{{ i.description }}</div>{% endif %}
+      {% if i.attachments %}
+      <div class="attach-grid">
+        {% for att in i.attachments %}
+          {% if att.id in att_map %}
+            <img class="attach-img" src="{{ att_map[att.id] }}" onclick="zoomImg(this.src)" title="{{ att.original }}">
+          {% else %}
+            <span style="font-size:12px;color:#94A3B8">📎 {{ att.original }}</span>
+          {% endif %}
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if i.comments %}
+      {% for c in i.comments %}
+      <div class="comment">
+        <div class="comment-meta">{{ c.created_at }}</div>
+        <div>{{ c.text }}</div>
+      </div>
+      {% endfor %}
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<!-- Image zoom overlay -->
+<div class="zoom-overlay" id="zoom" onclick="this.classList.remove('active')">
+  <img id="zoom-img" src="">
+</div>
+
+<script>
+function filter(type, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.step-card').forEach(card => {
+    if (type === 'all') card.style.display = '';
+    else if (type === 'has_diagram') card.style.display = card.dataset.hasDiagram === 'yes' ? '' : 'none';
+    else card.style.display = card.dataset.type === type ? '' : 'none';
+  });
+}
+function zoomImg(src) {
+  document.getElementById('zoom-img').src = src;
+  document.getElementById('zoom').classList.add('active');
+}
+function checkPF(input, mn, mx) {
+  const id = input.closest('.result-row').querySelector('.pf-auto').id;
+  const el = document.getElementById(id);
+  if (!el) return;
+  const v = parseFloat(input.value);
+  if (isNaN(v)) { el.textContent = '—'; el.style.color='#94A3B8'; return; }
+  if (mn !== null && mx !== null && !isNaN(mn) && !isNaN(mx)) {
+    const pass = v >= mn && v <= mx;
+    el.textContent = pass ? '✅ PASS' : '❌ FAIL';
+    el.style.color = pass ? '#10B981' : '#EF4444';
+    el.style.fontStyle = 'normal'; el.style.fontWeight = '700';
+  }
+}
+</script>
+</body>
+</html>
